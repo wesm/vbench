@@ -1,0 +1,13 @@
+*.pyc
+*.pyo
+*.swp
+build
+dist
+MANIFEST
+*.c
+*.cpp
+*.so
+*.pyd
+*flymake*
+.coverage
+gitbench.egg-info
