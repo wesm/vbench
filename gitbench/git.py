@@ -4,6 +4,8 @@ import os
 import re
 import sys
 
+import pytz
+
 import numpy as np
 
 from pandas import *
@@ -47,6 +49,7 @@ class GitRepo(Repo):
             timestamps.append(stamp)
             messages.append(message)
 
+        timestamps = _convert_timezones(timestamps)
         shas = Series(shas, timestamps)
         messages = Series(messages, shas)
         timestamps = Series(timestamps, shas)
@@ -131,6 +134,9 @@ class BenchRepo(object):
     def _build(self):
         pass
 
+
+def _convert_timestamps(stamps):
+    pass
 
 def _git_command(repo_path):
     return ('git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path))
