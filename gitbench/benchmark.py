@@ -12,7 +12,7 @@ import traceback
 
 class Benchmark(object):
 
-    def __init__(self, code, setup, ncalls=100, cleanup=None,
+    def __init__(self, code, setup, ncalls=None, cleanup=None,
                  name=None, description=None):
         self.code = code
         self.setup = setup

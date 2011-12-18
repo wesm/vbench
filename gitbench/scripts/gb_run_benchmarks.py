@@ -1,21 +1,16 @@
-def run_benchmarks(benchmarks, outfile):
-    results = []
+import sys
+import cPickle as pickle
 
-    for bmk in benchmarks:
-        res = bmk.run()
-        results.append(res)
+if len(sys.argv) != 3:
+    print 'Usage: script.py input output'
+    sys.exit()
 
-if __name__ == '__main__':
-    import optparse
-    parser = optparse.OptionParser(
-        usage="%prog [options]",
-        description=("Test the performance of pickling."))
-    parser.add_option("--input", action="store",
-                      help="Pickle file containing list of benchmark objects")
-    parser.add_option("--output", action="store",
-                      help="File path to store pickled results")
-    options, args = parser.parse_args()
+in_path, out_path = sys.argv[1:]
+benchmarks = pickle.load(open(in_path))
 
-    print options.input
-    print options.output
+results = {}
+for bmk in benchmarks:
+    res = bmk.run()
+    results[bmk.checksum] = res
 
+benchmarks = pickle.dump(results, open(out_path, 'w'))

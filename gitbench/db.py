@@ -3,7 +3,7 @@ import pandas as ps
 from sqlalchemy import Table, Column, MetaData, create_engine, ForeignKey
 from sqlalchemy import types as sqltypes
 from sqlalchemy import sql
-from sqlalchemy.exceptions import IntegrityError
+from sqlalchemy import exceptions as exc
 
 from gitbench.benchmark import Benchmark
 
@@ -28,7 +28,7 @@ class BenchmarkDB(object):
             Column('checksum', sqltypes.String(32),
                    ForeignKey('benchmarks.checksum'), primary_key=True),
             Column('revision', sqltypes.String(50), primary_key=True),
-            Column('ncalls', sqltypes.String(50), nullable=False),
+            Column('ncalls', sqltypes.String(50)),
             Column('timing', sqltypes.Float),
             Column('traceback', sqltypes.Text),
         )
@@ -70,8 +70,8 @@ class BenchmarkDB(object):
         """
 
         """
-        ins = self._benchmarks.insert()
-        ins = ins.values(bmk_checksum=checksum,
+        ins = self._results.insert()
+        ins = ins.values(checksum=checksum,
                          revision=revision, ncalls=ncalls,
                          timing=timing, traceback=traceback)
         result = self.conn.execute(ins)

@@ -41,7 +41,9 @@ class BenchmarkRunner(object):
 
         # where to copy the repo
         self.tmp_dir = tmp_dir
-        self.bench_repo = BenchRepo(self.tmp_dir)
+        self.bench_repo = BenchRepo(self.repo_path, self.tmp_dir, build_cmd)
+
+        self._register_benchmarks()
 
     def run(self):
         revisions = self._get_revisions_to_run()
@@ -70,7 +72,7 @@ class BenchmarkRunner(object):
 
         if not need_to_run:
             print 'No benchmarks need running at %s' % rev
-            return []
+            return {}
 
         print 'Running %d benchmarks for revision %s' % (len(need_to_run), rev)
 
@@ -83,9 +85,9 @@ class BenchmarkRunner(object):
         pickle.dump(need_to_run, open(pickle_path, 'w'))
 
         # run the process
-        cmd = 'python run_benchmarks.py --input=%s --output=%s' % (pickle_path,
-                                                                   results_path)
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+        cmd = 'python gb_run_benchmarks.py %s %s' % (pickle_path, results_path)
+        print cmd
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True,
                                 cwd=self.tmp_dir)
         stdout, stderr = proc.communicate()
 
@@ -93,6 +95,11 @@ class BenchmarkRunner(object):
 
         if stderr:
             raise Exception(stderr)
+
+
+        if not os.path.exists(results_path):
+            print 'Failed for revision %s' % rev
+            return {}
 
         results = pickle.load(open(results_path, 'r'))
         os.remove(pickle_path)
@@ -103,10 +110,11 @@ class BenchmarkRunner(object):
 
         # TODO generalize someday to other vcs...git only for now
 
-        rev_by_timestamp = self.repo.shas
+        rev_by_timestamp = self.repo.shas.sort_index()
 
-        # assume they're in order, but check for now
-        assert(rev_by_timestamp.index.is_monotonic)
+        # # assume they're in order, but check for now
+        # assert(rev_by_timestamp.index.is_monotonic)
+
         if self.start_date is not None:
             rev_by_timestamp = rev_by_timestamp.ix[self.start_date:]
 
