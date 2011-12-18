@@ -3,6 +3,9 @@ import pandas as ps
 from sqlalchemy import Table, Column, MetaData, create_engine, ForeignKey
 from sqlalchemy import types as sqltypes
 from sqlalchemy import sql
+from sqlalchemy.exceptions import IntegrityError
+
+from gitbench.benchmark import Benchmark
 
 class BenchmarkDB(object):
     """
@@ -22,23 +25,22 @@ class BenchmarkDB(object):
             Column('description', sqltypes.Text)
         )
         self._results = Table('results', self._metadata,
-            Column('bmk_checksum', sqltypes.String(32),
+            Column('checksum', sqltypes.String(32),
                    ForeignKey('benchmarks.checksum'), primary_key=True),
             Column('revision', sqltypes.String(50), primary_key=True),
             Column('ncalls', sqltypes.String(50), nullable=False),
-            Column('result', sqltypes.Float, nullable=False),
+            Column('timing', sqltypes.Float),
+            Column('traceback', sqltypes.Text),
         )
 
         self._ensure_tables_created()
 
-    _instances = {}
-
-    @classmethod
-    def get_instance(cls, dbpath):
-        if dbpath not in cls._instances:
-            cls._instances[dbpath] = BenchmarkDB(dbpath)
-
-        return cls._instances[dbpath]
+    # _instances = {}
+    # @classmethod
+    # def get_instance(cls, dbpath):
+    #     if dbpath not in cls._instances:
+    #         cls._instances[dbpath] = BenchmarkDB(dbpath)
+    #     return cls._instances[dbpath]
 
     def _ensure_tables_created(self):
         self._benchmarks.create(self._engine, checkfirst=True)
@@ -48,14 +50,14 @@ class BenchmarkDB(object):
     def conn(self):
         return self._engine.connect()
 
-    def write_benchmark(self, name, checksum, description):
+    def write_benchmark(self, bm, overwrite=False):
         """
 
         """
         ins = self._benchmarks.insert()
-        ins = ins.values(name=name, checksum=checksum, description=description)
+        ins = ins.values(name=bm.name, checksum=bm.checksum,
+                         description=bm.description)
         result = self.conn.execute(ins)
-        print result
 
     def delete_benchmark(self, checksum):
         """
@@ -63,15 +65,15 @@ class BenchmarkDB(object):
         """
         pass
 
-    def write_result(self, checksum, revision, ncalls, result):
+    def write_result(self, checksum, revision, ncalls, timing,
+                     traceback=None, overwrite=False):
         """
 
         """
-
         ins = self._benchmarks.insert()
         ins = ins.values(bmk_checksum=checksum,
                          revision=revision, ncalls=ncalls,
-                         result=result)
+                         timing=timing, traceback=traceback)
         result = self.conn.execute(ins)
         print result
 
@@ -80,6 +82,17 @@ class BenchmarkDB(object):
 
         """
         pass
+
+    def get_benchmarks(self):
+        stmt = sql.select([self._benchmarks])
+        return list(self.conn.execute(stmt))
+
+    def get_rev_results(self, rev):
+        tab = self._results
+        stmt = sql.select([tab],
+                          sql.and_(tab.c.revision == rev))
+        results = list(self.conn.execute(stmt))
+        return dict((v.checksum, v) for v in results)
 
     def get_benchmark_results(self, checksum):
         """

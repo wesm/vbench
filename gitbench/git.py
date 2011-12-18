@@ -10,6 +10,8 @@ import numpy as np
 
 from pandas import *
 
+import gitbench.config as config
+
 class Repo(object):
 
     def __init__(self):
@@ -49,7 +51,9 @@ class GitRepo(Repo):
             timestamps.append(stamp)
             messages.append(message)
 
+        # to UTC for now
         timestamps = _convert_timezones(timestamps)
+
         shas = Series(shas, timestamps)
         messages = Series(messages, shas)
         timestamps = Series(timestamps, shas)
@@ -119,7 +123,6 @@ class BenchRepo(object):
     """
     def __init__(self, conf):
         self.conf = conf
-        self.source_repo = GitRepo(self.conf.source_path)
 
     def switch_to_revision(self, rev):
         """
@@ -135,8 +138,15 @@ class BenchRepo(object):
         pass
 
 
-def _convert_timestamps(stamps):
-    pass
+def _convert_timezones(stamps):
+    # tz = config.TIME_ZONE
+    def _convert(dt):
+        offset = dt.tzinfo.utcoffset(dt)
+        dt = dt.replace(tzinfo=None)
+        dt = dt - offset
+        return dt
+
+    return [_convert(x) for x in stamps]
 
 def _git_command(repo_path):
     return ('git --git-dir=%s/.git --work-tree=%s ' % (repo_path, repo_path))

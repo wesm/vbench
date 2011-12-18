@@ -8,6 +8,7 @@ import pstats
 import gc
 import md5
 import time
+import traceback
 
 class Benchmark(object):
 
@@ -15,7 +16,7 @@ class Benchmark(object):
                  name=None, description=None):
         self.code = code
         self.setup = setup
-        self.cleanup = cleanup
+        self.cleanup = cleanup or ''
         self.ncalls = ncalls
         self.name = name
         self.description = description
@@ -27,7 +28,7 @@ class Benchmark(object):
 
     @property
     def checksum(self):
-        return md5.md5(self.setup + self.code).hexdigest()
+        return md5.md5(self.setup + self.code + self.cleanup).hexdigest()
 
     def profile(self, ncalls):
         prof = cProfile.Profile()
@@ -42,8 +43,16 @@ class Benchmark(object):
 
     def run(self):
         ns = self._setup()
-        return magic_timeit(ns, self.code, ncalls=self.ncalls,
-                            force_ms=True)
+
+        try:
+            result = magic_timeit(ns, self.code, ncalls=self.ncalls,
+                                  force_ms=True)
+            result['succeeded'] = True
+            return result
+        except:
+            buf = StringIO()
+            traceback.print_exc(file=buf)
+            return {'succeeded' : False, 'traceback' : buf.getvalue()}
 
     def _run(self, ns, ncalls, disable_gc=False):
         if ncalls is None:
