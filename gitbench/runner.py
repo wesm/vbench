@@ -1,5 +1,6 @@
 import cPickle as pickle
 import os
+import subprocess
 
 from gitbench.git import GitRepo, BenchRepo
 from gitbench.db import BenchmarkDB
@@ -49,7 +50,7 @@ class BenchmarkRunner(object):
             results = self._run_revision(rev)
 
             for checksum, timing in results.iteritems():
-                self.db.write_result(checksum, revision,
+                self.db.write_result(checksum, rev,
                                      timing.get('loops'),
                                      timing.get('timing'),
                                      timing.get('traceback'))
@@ -73,15 +74,25 @@ class BenchmarkRunner(object):
 
         print 'Running %d benchmarks for revision %s' % (len(need_to_run), rev)
 
-        self._prepare_code(rev)
+        self.bench_repo.switch_to_revision(rev)
 
-        pickle_path = pjoin(self.tmp_dir, 'benchmarks.pickle')
-        results_path = pjoin(self.tmp_dir, 'results.pickle')
+        pickle_path = os.path.join(self.tmp_dir, 'benchmarks.pickle')
+        results_path = os.path.join(self.tmp_dir, 'results.pickle')
         if os.path.exists(results_path):
             os.remove(results_path)
         pickle.dump(need_to_run, open(pickle_path, 'w'))
 
-        _run_benchmark_subproc(pickle_path, results_path)
+        # run the process
+        cmd = 'python run_benchmarks.py --input=%s --output=%s' % (pickle_path,
+                                                                   results_path)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                cwd=self.tmp_dir)
+        stdout, stderr = proc.communicate()
+
+        print stdout
+
+        if stderr:
+            raise Exception(stderr)
 
         results = pickle.load(open(results_path, 'r'))
         os.remove(pickle_path)
@@ -110,12 +121,3 @@ class BenchmarkRunner(object):
             raise Exception('unrecognized run_method %s' % self.run_method)
 
         return revs_to_run
-
-    def _prepare_code(self, rev):
-        self.bench_repo.checkout(rev)
-        self.bench_repo.build()
-
-def _run_benchmark_subproc(input_path, result_path):
-    from subprocess import Popen, PIPE
-
-

@@ -121,8 +121,33 @@ class BenchRepo(object):
     """
     Manage an isolated copy of a repository for benchmarking
     """
-    def __init__(self, conf):
-        self.conf = conf
+    def __init__(self, source_dir, target_dir, build_cmds):
+        self.source_dir = source_dir
+        self.target_dir = target_dir
+        self.build_cmds = build_cmds
+        self._copy_repo()
+
+    def _copy_repo(self):
+        if os.path.exists(self.target_dir):
+            print 'Deleting %s first' % self.target_dir
+            # response = raw_input('%s exists, delete? y/n' % self.target_dir)
+            # if response == 'n':
+            #     raise Exception('foo')
+            cmd = 'rm -rf %s' % self.target_dir
+            print cmd
+            os.system(cmd)
+        cmd = 'cp -r %s %s' % (self.source_dir, self.target_dir)
+        print cmd
+        os.system(cmd)
+
+        self._copy_benchmark_script()
+
+    def _copy_benchmark_script(self):
+        pth, _ = os.path.split(os.path.abspath(__file__))
+        script_path = os.path.join(pth, 'scripts/gb_run_benchmarks.py')
+        cmd = 'cp %s %s' % (script_path, self.target_dir)
+        print cmd
+        os.system(cmd)
 
     def switch_to_revision(self, rev):
         """
@@ -132,10 +157,25 @@ class BenchRepo(object):
         self._build()
 
     def _checkout(self, rev):
-        pass
+        git = _git_command(self.target_dir)
+        rest = 'checkout -f %s' % rev
+        args = git.split() + rest.split()
+
+        print ' '.join(args)
+
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+        proc.wait()
+        print proc.stdout.read()
 
     def _build(self):
-        pass
+        cmd = ';'.join([x for x in self.build_cmds.split('\n')
+                        if len(x.strip()) > 0])
+
+        print cmd
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True,
+                                cwd=self.target_dir)
+        stdout, stderr = proc.communicate()
+        print stdout
 
 
 def _convert_timezones(stamps):
