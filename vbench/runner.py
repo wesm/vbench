@@ -23,7 +23,8 @@ class BenchmarkRunner(object):
     overwrite : boolean
     """
 
-    def __init__(self, benchmarks, repo_path, build_cmd, db_path, tmp_dir,
+    def __init__(self, benchmarks, repo_path, repo_url,
+                 build_cmd, db_path, tmp_dir,
                  preparation_cmd,
                  run_option='end_of_day', start_date=None,
                  overwrite=False):
@@ -42,7 +43,7 @@ class BenchmarkRunner(object):
 
         # where to copy the repo
         self.tmp_dir = tmp_dir
-        self.bench_repo = BenchRepo(self.repo_path, self.tmp_dir, build_cmd,
+        self.bench_repo = BenchRepo(repo_url, self.tmp_dir, build_cmd,
                                     preparation_cmd)
 
         self._register_benchmarks()
@@ -52,12 +53,22 @@ class BenchmarkRunner(object):
 
         for rev in revisions:
             results = self._run_revision(rev)
+            tracebacks = []
 
             for checksum, timing in results.iteritems():
+                if 'traceback' in timing:
+                    tracebacks.append(timing['traceback'])
+
                 self.db.write_result(checksum, rev,
                                      timing.get('loops'),
                                      timing.get('timing'),
                                      timing.get('traceback'))
+
+            for tb in tracebacks:
+                if 'object has no attribute' in tb:
+                    print 'HARD CLEANING because of %s' % tb
+                    self.bench_repo.hard_clean()
+                    break
 
     def _register_benchmarks(self):
         db_checksums = set(v.checksum for v in self.db.get_benchmarks())
@@ -93,11 +104,14 @@ class BenchmarkRunner(object):
                                 cwd=self.tmp_dir)
         stdout, stderr = proc.communicate()
 
-        print stdout
+        print 'stdout: %s' % stdout
 
         if stderr:
-            raise Exception(stderr)
-
+            if ("object has no attribute" in stderr or
+                'ImportError' in stderr):
+                print 'HARD CLEANING!'
+                self.bench_repo.hard_clean()
+            print stderr
 
         if not os.path.exists(results_path):
             print 'Failed for revision %s' % rev

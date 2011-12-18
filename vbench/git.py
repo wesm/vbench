@@ -138,8 +138,7 @@ class BenchRepo(object):
             print cmd
             os.system(cmd)
 
-        url = 'git@github.com:wesm/pandas.git'
-        cmd = 'git clone %s %s' % (url, self.target_dir)
+        cmd = 'git clone %s %s' % (self.source_url, self.target_dir)
         print cmd
         os.system(cmd)
         self._prep()
@@ -147,7 +146,7 @@ class BenchRepo(object):
 
     def _copy_benchmark_script(self):
         pth, _ = os.path.split(os.path.abspath(__file__))
-        script_path = os.path.join(pth, 'scripts/gb_run_benchmarks.py')
+        script_path = os.path.join(pth, 'scripts/vb_run_benchmarks.py')
         cmd = 'cp %s %s' % (script_path, self.target_dir)
         print cmd
         os.system(cmd)
@@ -192,7 +191,7 @@ class BenchRepo(object):
         print stdout
 
     def hard_clean(self):
-        self._clean_pyc_files(('.pyc', '.pyo', 'c', 'cpp', 'so', 'pyd'))
+        self._copy_repo()
 
     def _clean_pyc_files(self, extensions=('.pyc', '.pyo')):
         clean_me = []
