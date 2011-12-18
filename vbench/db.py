@@ -5,11 +5,11 @@ from sqlalchemy import types as sqltypes
 from sqlalchemy import sql
 from sqlalchemy import exceptions as exc
 
-from gitbench.benchmark import Benchmark
+from vbench.benchmark import Benchmark
 
 class BenchmarkDB(object):
     """
-    Persist gitbench results in a sqlite3 database
+    Persist vbench results in a sqlite3 database
     """
 
     def __init__(self, dbpath):
@@ -83,6 +83,12 @@ class BenchmarkDB(object):
         """
         pass
 
+    def delete_error_results(self):
+        tab = self._results
+        ins = tab.delete()
+        ins = ins.where(tab.c.timing == None)
+        self.conn.execute(ins)
+
     def get_benchmarks(self):
         stmt = sql.select([self._benchmarks])
         return list(self.conn.execute(stmt))
@@ -102,3 +108,4 @@ class BenchmarkDB(object):
         stmt = sql.select([tab],
                           sql.and_(tab.c.bmk_checksum == checksum))
         return self.conn.execute(stmt)
+

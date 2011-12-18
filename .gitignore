@@ -10,4 +10,4 @@ MANIFEST
 *.pyd
 *flymake*
 .coverage
-gitbench.egg-info
+vbench.egg-info

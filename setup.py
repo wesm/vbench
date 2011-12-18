@@ -9,11 +9,11 @@ Performance benchmarking and monitoring tool
 """
 
 REQUIRES = ['sqlalchemy', 'pandas']
-DISTNAME = 'gitbench'
+DISTNAME = 'vbench'
 LICENSE = 'BSD'
 AUTHOR = "Wes McKinney"
 AUTHOR_EMAIL = "wesmckinn@gmail.com"
-URL = "https://github.com/wesm/gitbench"
+URL = "https://github.com/wesm/vbench"
 CLASSIFIERS = [
     'Development Status :: 2 - Pre-Alpha',
     'Environment :: Console',
@@ -40,8 +40,8 @@ def configuration(parent_package='', top_path=None):
                        delegate_options_to_subpackages=True,
                        quiet=True)
 
-    config.add_subpackage('gitbench')
-    config.add_data_dir('gitbench/tests')
+    config.add_subpackage('vbench')
+    config.add_data_dir('vbench/tests')
     return config
 
 if __name__ == '__main__':

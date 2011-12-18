@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas import *
 
-import gitbench.config as config
+import vbench.config as config
 
 class Repo(object):
 
@@ -121,10 +121,11 @@ class BenchRepo(object):
     """
     Manage an isolated copy of a repository for benchmarking
     """
-    def __init__(self, source_dir, target_dir, build_cmds):
-        self.source_dir = source_dir
+    def __init__(self, source_url, target_dir, build_cmds, prep_cmd):
+        self.source_url = source_url
         self.target_dir = target_dir
         self.build_cmds = build_cmds
+        self.prep_cmd = prep_cmd
         self._copy_repo()
 
     def _copy_repo(self):
@@ -136,10 +137,12 @@ class BenchRepo(object):
             cmd = 'rm -rf %s' % self.target_dir
             print cmd
             os.system(cmd)
-        cmd = 'cp -r %s %s' % (self.source_dir, self.target_dir)
+
+        url = 'git@github.com:wesm/pandas.git'
+        cmd = 'git clone %s %s' % (url, self.target_dir)
         print cmd
         os.system(cmd)
-
+        self._prep()
         self._copy_benchmark_script()
 
     def _copy_benchmark_script(self):
@@ -154,6 +157,7 @@ class BenchRepo(object):
         rev: git SHA
         """
         self._checkout(rev)
+        self._clean_pyc_files()
         self._build()
 
     def _checkout(self, rev):
@@ -176,6 +180,32 @@ class BenchRepo(object):
                                 cwd=self.target_dir)
         stdout, stderr = proc.communicate()
         print stdout
+
+    def _prep(self):
+        cmd = ';'.join([x for x in self.prep_cmd.split('\n')
+                        if len(x.strip()) > 0])
+
+        print cmd
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True,
+                                cwd=self.target_dir)
+        stdout, stderr = proc.communicate()
+        print stdout
+
+    def hard_clean(self):
+        self._clean_pyc_files(('.pyc', '.pyo', 'c', 'cpp', 'so', 'pyd'))
+
+    def _clean_pyc_files(self, extensions=('.pyc', '.pyo')):
+        clean_me = []
+        for root, dirs, files in list(os.walk(self.target_dir)):
+            for f in files:
+                if os.path.splitext(f)[-1] in extensions:
+                    clean_me.append(os.path.join(root, f))
+
+        for path in clean_me:
+            try:
+                os.unlink(path)
+            except Exception:
+                pass
 
 
 def _convert_timezones(stamps):

@@ -2,8 +2,8 @@ import cPickle as pickle
 import os
 import subprocess
 
-from gitbench.git import GitRepo, BenchRepo
-from gitbench.db import BenchmarkDB
+from vbench.git import GitRepo, BenchRepo
+from vbench.db import BenchmarkDB
 
 from datetime import datetime
 
@@ -24,6 +24,7 @@ class BenchmarkRunner(object):
     """
 
     def __init__(self, benchmarks, repo_path, build_cmd, db_path, tmp_dir,
+                 preparation_cmd,
                  run_option='end_of_day', start_date=None,
                  overwrite=False):
 
@@ -41,7 +42,8 @@ class BenchmarkRunner(object):
 
         # where to copy the repo
         self.tmp_dir = tmp_dir
-        self.bench_repo = BenchRepo(self.repo_path, self.tmp_dir, build_cmd)
+        self.bench_repo = BenchRepo(self.repo_path, self.tmp_dir, build_cmd,
+                                    preparation_cmd)
 
         self._register_benchmarks()
 
@@ -66,9 +68,7 @@ class BenchmarkRunner(object):
             self.db.write_benchmark(bm)
 
     def _run_revision(self, rev):
-        existing_results = self.db.get_rev_results(rev)
-        need_to_run = [b for b in self.benchmarks
-                       if b.checksum not in existing_results]
+        need_to_run = self._get_benchmarks_for_rev(rev)
 
         if not need_to_run:
             print 'No benchmarks need running at %s' % rev
@@ -85,9 +85,11 @@ class BenchmarkRunner(object):
         pickle.dump(need_to_run, open(pickle_path, 'w'))
 
         # run the process
-        cmd = 'python gb_run_benchmarks.py %s %s' % (pickle_path, results_path)
+        cmd = 'python vb_run_benchmarks.py %s %s' % (pickle_path, results_path)
         print cmd
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True,
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                shell=True,
                                 cwd=self.tmp_dir)
         stdout, stderr = proc.communicate()
 
@@ -102,9 +104,28 @@ class BenchmarkRunner(object):
             return {}
 
         results = pickle.load(open(results_path, 'r'))
-        os.remove(pickle_path)
+
+        try:
+            os.remove(pickle_path)
+        except OSError:
+            pass
 
         return results
+
+    def _get_benchmarks_for_rev(self, rev):
+        existing_results = self.db.get_rev_results(rev)
+        need_to_run = []
+
+        timestamp = self.repo.timestamps[rev]
+
+        for b in self.benchmarks:
+            if b.start_date is not None and b.start_date > timestamp:
+                continue
+
+            if b.checksum not in existing_results:
+                need_to_run.append(b)
+
+        return need_to_run
 
     def _get_revisions_to_run(self):
 

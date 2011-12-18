@@ -13,13 +13,14 @@ import traceback
 class Benchmark(object):
 
     def __init__(self, code, setup, ncalls=None, cleanup=None,
-                 name=None, description=None):
+                 name=None, description=None, start_date=None):
         self.code = code
         self.setup = setup
         self.cleanup = cleanup or ''
         self.ncalls = ncalls
         self.name = name
         self.description = description
+        self.start_date = start_date
 
     def _setup(self):
         ns = globals().copy()
