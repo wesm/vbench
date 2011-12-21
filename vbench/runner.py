@@ -21,13 +21,15 @@ class BenchmarkRunner(object):
         all: benchmark every revision
         some integer N: run each N revisions
     overwrite : boolean
+    dependencies : list or None
+        should be list of modules visible in cwd
     """
 
     def __init__(self, benchmarks, repo_path, repo_url,
                  build_cmd, db_path, tmp_dir,
                  preparation_cmd,
-                 run_option='end_of_day', start_date=None,
-                 overwrite=False):
+                 run_option='end_of_day', start_date=None, overwrite=False,
+                 module_dependencies=None):
 
         self.benchmarks = benchmarks
         self.checksums = [b.checksum for b in benchmarks]
@@ -44,8 +46,8 @@ class BenchmarkRunner(object):
         # where to copy the repo
         self.tmp_dir = tmp_dir
         self.bench_repo = BenchRepo(repo_url, self.tmp_dir, build_cmd,
-                                    preparation_cmd)
-
+                                    preparation_cmd,
+                                    dependencies=module_dependencies)
         self._register_benchmarks()
 
     def run(self):
@@ -59,7 +61,9 @@ class BenchmarkRunner(object):
                 if 'traceback' in timing:
                     tracebacks.append(timing['traceback'])
 
-                self.db.write_result(checksum, rev,
+                timestamp = self.repo.timestamps[rev]
+
+                self.db.write_result(checksum, rev, timestamp,
                                      timing.get('loops'),
                                      timing.get('timing'),
                                      timing.get('traceback'))
@@ -71,12 +75,14 @@ class BenchmarkRunner(object):
                     break
 
     def _register_benchmarks(self):
-        db_checksums = set(v.checksum for v in self.db.get_benchmarks())
+        ex_benchmarks = self.db.get_benchmarks()
+        db_checksums = set(ex_benchmarks.index)
         for bm in self.benchmarks:
             if bm.checksum in db_checksums:
-                continue
-            print 'Writing new benchmark %s, %s' % (bm.name, bm.checksum)
-            self.db.write_benchmark(bm)
+                self.db.update_name(bm)
+            else:
+                print 'Writing new benchmark %s, %s' % (bm.name, bm.checksum)
+                self.db.write_benchmark(bm)
 
     def _run_revision(self, rev):
         need_to_run = self._get_benchmarks_for_rev(rev)
@@ -86,6 +92,8 @@ class BenchmarkRunner(object):
             return {}
 
         print 'Running %d benchmarks for revision %s' % (len(need_to_run), rev)
+        for bm in need_to_run:
+            print bm.name
 
         self.bench_repo.switch_to_revision(rev)
 
@@ -161,6 +169,6 @@ class BenchmarkRunner(object):
         elif isinstance(self.run_option, int):
             revs_to_run = rev_by_timestamp.values[::self.run_option]
         else:
-            raise Exception('unrecognized run_method %s' % self.run_method)
+            raise Exception('unrecognized run_option %s' % self.run_option)
 
         return revs_to_run

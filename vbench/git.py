@@ -121,11 +121,13 @@ class BenchRepo(object):
     """
     Manage an isolated copy of a repository for benchmarking
     """
-    def __init__(self, source_url, target_dir, build_cmds, prep_cmd):
+    def __init__(self, source_url, target_dir, build_cmds, prep_cmd,
+                 dependencies=None):
         self.source_url = source_url
         self.target_dir = target_dir
         self.build_cmds = build_cmds
         self.prep_cmd = prep_cmd
+        self.dependencies = dependencies
         self._copy_repo()
 
     def _copy_repo(self):
@@ -142,14 +144,19 @@ class BenchRepo(object):
         print cmd
         os.system(cmd)
         self._prep()
-        self._copy_benchmark_script()
+        self._copy_benchmark_scripts_and_deps()
 
-    def _copy_benchmark_script(self):
+    def _copy_benchmark_scripts_and_deps(self):
         pth, _ = os.path.split(os.path.abspath(__file__))
-        script_path = os.path.join(pth, 'scripts/vb_run_benchmarks.py')
-        cmd = 'cp %s %s' % (script_path, self.target_dir)
-        print cmd
-        os.system(cmd)
+        deps = [os.path.join(pth, 'scripts/vb_run_benchmarks.py')]
+        if self.dependencies is not None:
+            deps.extend(self.dependencies)
+
+        for dep in deps:
+            cmd = 'cp %s %s' % (dep, self.target_dir)
+            print cmd
+            proc = subprocess.Popen(cmd, shell=True)
+            proc.wait()
 
     def switch_to_revision(self, rev):
         """

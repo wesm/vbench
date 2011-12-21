@@ -1,4 +1,4 @@
-import pandas as ps
+from pandas import DataFrame
 
 from sqlalchemy import Table, Column, MetaData, create_engine, ForeignKey
 from sqlalchemy import types as sqltypes
@@ -28,6 +28,7 @@ class BenchmarkDB(object):
             Column('checksum', sqltypes.String(32),
                    ForeignKey('benchmarks.checksum'), primary_key=True),
             Column('revision', sqltypes.String(50), primary_key=True),
+            Column('timestamp', sqltypes.DateTime, nullable=False),
             Column('ncalls', sqltypes.String(50)),
             Column('timing', sqltypes.Float),
             Column('traceback', sqltypes.Text),
@@ -35,16 +36,42 @@ class BenchmarkDB(object):
 
         self._ensure_tables_created()
 
-    # _instances = {}
-    # @classmethod
-    # def get_instance(cls, dbpath):
-    #     if dbpath not in cls._instances:
-    #         cls._instances[dbpath] = BenchmarkDB(dbpath)
-    #     return cls._instances[dbpath]
+    _instances = {}
+    @classmethod
+    def get_instance(cls, dbpath):
+        if dbpath not in cls._instances:
+            cls._instances[dbpath] = BenchmarkDB(dbpath)
+        return cls._instances[dbpath]
 
     def _ensure_tables_created(self):
         self._benchmarks.create(self._engine, checkfirst=True)
         self._results.create(self._engine, checkfirst=True)
+
+    def update_name(self, benchmark):
+        """
+        benchmarks : list
+        """
+        table = self._benchmarks
+        stmt = (table.update().
+                where(table.c.checksum==benchmark.checksum).
+                values(checksum=benchmark.checksum))
+        self.conn.execute(stmt)
+
+    def restrict_to_benchmarks(self, benchmarks):
+        """
+        benchmarks : list
+        """
+        checksums = set([b.checksum for b in benchmarks])
+
+        ex_benchmarks = self.get_benchmarks()
+
+        to_delete = set(ex_benchmarks.index) - checksums
+
+        t = self._benchmarks
+        for chksum in to_delete:
+            print 'Deleting %s\n%s' % (chksum, ex_benchmarks.xs(chksum))
+            stmt = t.delete().where(t.c.checksum==chksum)
+            self.conn.execute(stmt)
 
     @property
     def conn(self):
@@ -65,15 +92,15 @@ class BenchmarkDB(object):
         """
         pass
 
-    def write_result(self, checksum, revision, ncalls, timing,
-                     traceback=None, overwrite=False):
+    def write_result(self, checksum, revision, timestamp, ncalls,
+                     timing, traceback=None, overwrite=False):
         """
 
         """
         ins = self._results.insert()
-        ins = ins.values(checksum=checksum,
-                         revision=revision, ncalls=ncalls,
-                         timing=timing, traceback=traceback)
+        ins = ins.values(checksum=checksum, revision=revision,
+                         timestamp=timestamp,
+                         ncalls=ncalls, timing=timing,traceback=traceback)
         result = self.conn.execute(ins)
         print result
 
@@ -91,7 +118,8 @@ class BenchmarkDB(object):
 
     def get_benchmarks(self):
         stmt = sql.select([self._benchmarks])
-        return list(self.conn.execute(stmt))
+        result = self.conn.execute(stmt)
+        return _sqa_to_frame(result).set_index('checksum')
 
     def get_rev_results(self, rev):
         tab = self._results
@@ -105,7 +133,18 @@ class BenchmarkDB(object):
 
         """
         tab = self._results
-        stmt = sql.select([tab],
-                          sql.and_(tab.c.bmk_checksum == checksum))
-        return self.conn.execute(stmt)
+        stmt = sql.select([tab.c.timestamp, tab.c.revision, tab.c.ncalls,
+                           tab.c.timing, tab.c.traceback],
+                          sql.and_(tab.c.checksum == checksum))
+        results = self.conn.execute(stmt)
+
+        df = _sqa_to_frame(results).set_index('timestamp')
+        return df.sort_index()
+
+
+def _sqa_to_frame(result):
+    rows = [tuple(x) for x in result]
+    return DataFrame.from_records(rows, columns=result.keys())
+
+
 

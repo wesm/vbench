@@ -22,6 +22,9 @@ class Benchmark(object):
         self.description = description
         self.start_date = start_date
 
+    def __repr__(self):
+        return "Benchmark('%s')" % self.name
+
     def _setup(self):
         ns = globals().copy()
         exec self.setup in ns
@@ -41,6 +44,11 @@ class Benchmark(object):
                 exec code in ns
         prof.runcall(f)
         return pstats.Stats(prof).sort_stats('cumulative')
+
+    def get_results(self, db_path):
+        from vbench.db import BenchmarkDB
+        db = BenchmarkDB.get_instance(db_path)
+        return db.get_benchmark_results(self.checksum)
 
     def run(self):
         ns = self._setup()
@@ -71,6 +79,51 @@ class Benchmark(object):
             gc.enable()
 
         return elapsed
+
+    def to_rst(self, image_path=None):
+        output = """**Benchmark setup**
+
+.. code-block:: python
+
+%s
+
+**Benchmark statement**
+
+.. code-block:: python
+
+%s
+
+""" % (indent(self.setup), indent(self.code))
+
+        if image_path is not None:
+            output += ("**Performance graph**\n\n.. image:: %s"
+                       "\n   :width: 6in" % image_path)
+
+        return output
+
+    def plot(self, db_path, label=None, ax=None, title=True):
+        import matplotlib.pyplot as plt
+
+        results = self.get_results(db_path)
+
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+
+        results['timing'].plot(ax=ax, label=label)
+
+        ax.set_ylabel('milliseconds')
+        ax.set_xlabel('Date')
+
+        if title:
+            ax.set_title(self.name)
+
+        return ax
+
+
+def indent(string, spaces=4):
+    dent = ' ' * spaces
+    return '\n'.join([dent + x for x in string.split('\n')])
 
 class BenchmarkSuite(object):
 
@@ -159,7 +212,7 @@ def magic_timeit(ns, stmt, ncalls=None, force_ms=False):
         # determine number so that 0.2 <= total time < 2.0
         number = 1
         for _ in range(1, 10):
-            if timer.timeit(number) >= 0.1:
+            if timer.timeit(number) >= 0.3:
                 break
             number *= 10
     else:
