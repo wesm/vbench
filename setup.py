@@ -32,24 +32,12 @@ FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.beta'
 
-def configuration(parent_package='', top_path=None):
-    config = Configuration(None, parent_package, top_path,
-                           version=FULLVERSION)
-    config.set_options(ignore_setup_xxx_py=True,
-                       assume_default_configuration=True,
-                       delegate_options_to_subpackages=True,
-                       quiet=True)
-
-    config.add_subpackage('vbench')
-    config.add_data_dir('vbench/tests')
-    return config
-
 if __name__ == '__main__':
     setup(name=DISTNAME,
           version=VERSION,
           author=AUTHOR,
           author_email=AUTHOR_EMAIL,
-          packages=['vbench'],
+          packages=['vbench', 'vbench.tests'],
           package_data={'vbench' : ['scripts/*.py']},
           description=DESCRIPTION,
           license=LICENSE,
