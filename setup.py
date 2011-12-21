@@ -46,12 +46,14 @@ def configuration(parent_package='', top_path=None):
 
 if __name__ == '__main__':
     setup(name=DISTNAME,
+          version=VERSION,
           author=AUTHOR,
           author_email=AUTHOR_EMAIL,
+          packages=['vbench'],
+          package_data={'vbench' : ['scripts/*.py']},
           description=DESCRIPTION,
           license=LICENSE,
           url=URL,
           long_description=LONG_DESCRIPTION,
           classifiers=CLASSIFIERS,
-          platforms='any',
-          configuration=configuration)
+          platforms='any')
