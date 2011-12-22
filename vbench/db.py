@@ -34,6 +34,10 @@ class BenchmarkDB(object):
             Column('traceback', sqltypes.Text),
         )
 
+        self._blacklist = Table('blacklist', self._metadata,
+            Column('revision', sqltypes.String(50), primary_key=True)
+        )
+
         self._ensure_tables_created()
 
     _instances = {}
@@ -46,6 +50,7 @@ class BenchmarkDB(object):
     def _ensure_tables_created(self):
         self._benchmarks.create(self._engine, checkfirst=True)
         self._results.create(self._engine, checkfirst=True)
+        self._blacklist.create(self._engine, checkfirst=True)
 
     def update_name(self, benchmark):
         """
@@ -127,6 +132,26 @@ class BenchmarkDB(object):
                           sql.and_(tab.c.revision == rev))
         results = list(self.conn.execute(stmt))
         return dict((v.checksum, v) for v in results)
+
+    def delete_rev_results(self, rev):
+        tab = self._results
+        stmt = tab.delete().where(tab.c.revision == rev)
+        self.conn.execute(stmt)
+
+    def add_rev_blacklist(self, rev):
+        """
+        Don't try running this revision again
+        """
+        stmt = self._blacklist.insert().values(revision=rev)
+        self.conn.execute(stmt)
+
+    def get_rev_blacklist(self):
+        stmt = self._blacklist.select()
+        return [x['revision'] for x in self.conn.execute(stmt)]
+
+    def clear_blacklist(self):
+        stmt = self._blacklist.delete()
+        self.conn.execute(stmt)
 
     def get_benchmark_results(self, checksum):
         """

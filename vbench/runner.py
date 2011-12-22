@@ -29,7 +29,8 @@ class BenchmarkRunner(object):
                  build_cmd, db_path, tmp_dir,
                  preparation_cmd,
                  run_option='end_of_day', start_date=None, overwrite=False,
-                 module_dependencies=None):
+                 module_dependencies=None,
+                 use_blacklist=True):
 
         self.benchmarks = benchmarks
         self.checksums = [b.checksum for b in benchmarks]
@@ -43,6 +44,10 @@ class BenchmarkRunner(object):
         self.repo = GitRepo(self.repo_path)
         self.db = BenchmarkDB(db_path)
 
+        self.use_blacklist = use_blacklist
+
+        self.blacklist = set(self.db.get_rev_blacklist())
+
         # where to copy the repo
         self.tmp_dir = tmp_dir
         self.bench_repo = BenchRepo(repo_url, self.tmp_dir, build_cmd,
@@ -54,25 +59,50 @@ class BenchmarkRunner(object):
         revisions = self._get_revisions_to_run()
 
         for rev in revisions:
-            results = self._run_revision(rev)
-            tracebacks = []
+            if self.use_blacklist and rev in self.blacklist:
+                print 'SKIPPING BLACKLISTED %s' % rev
+                continue
 
-            for checksum, timing in results.iteritems():
-                if 'traceback' in timing:
-                    tracebacks.append(timing['traceback'])
+            any_succeeded = self._run_and_write_results(rev)
+            if not any_succeeded:
+                any_succeeded2 = self._run_and_write_results(rev)
 
-                timestamp = self.repo.timestamps[rev]
+                # just guessing that this revision is broken, should stop
+                # wasting our time
+                if (not any_succeeded2 and len(self.benchmarks) > 2
+                    and self.use_blacklist):
+                    print 'BLACKLISTING %s' % rev
+                    self.db.add_rev_blacklist(rev)
 
-                self.db.write_result(checksum, rev, timestamp,
-                                     timing.get('loops'),
-                                     timing.get('timing'),
-                                     timing.get('traceback'))
+    def _run_and_write_results(self, rev):
+        """
+        Returns True if any runs succeeded
+        """
+        n_active_benchmarks, results = self._run_revision(rev)
+        tracebacks = []
 
-            for tb in tracebacks:
-                if 'object has no attribute' in tb:
-                    print 'HARD CLEANING because of %s' % tb
-                    self.bench_repo.hard_clean()
-                    break
+        any_succeeded = False
+
+        for checksum, timing in results.iteritems():
+            if 'traceback' in timing:
+                tracebacks.append(timing['traceback'])
+
+            timestamp = self.repo.timestamps[rev]
+
+            any_succeeded = any_succeeded or 'timing' in timing
+
+            self.db.write_result(checksum, rev, timestamp,
+                                 timing.get('loops'),
+                                 timing.get('timing'),
+                                 timing.get('traceback'))
+
+        for tb in tracebacks:
+            if 'object has no attribute' in tb:
+                print 'HARD CLEANING because of %s' % tb
+                self.bench_repo.hard_clean()
+                break
+
+        return any_succeeded or n_active_benchmarks == 0
 
     def _register_benchmarks(self):
         ex_benchmarks = self.db.get_benchmarks()
@@ -89,7 +119,7 @@ class BenchmarkRunner(object):
 
         if not need_to_run:
             print 'No benchmarks need running at %s' % rev
-            return {}
+            return 0, {}
 
         print 'Running %d benchmarks for revision %s' % (len(need_to_run), rev)
         for bm in need_to_run:
@@ -123,7 +153,7 @@ class BenchmarkRunner(object):
 
         if not os.path.exists(results_path):
             print 'Failed for revision %s' % rev
-            return {}
+            return len(need_to_run), {}
 
         results = pickle.load(open(results_path, 'r'))
 
@@ -132,7 +162,7 @@ class BenchmarkRunner(object):
         except OSError:
             pass
 
-        return results
+        return len(need_to_run), results
 
     def _get_benchmarks_for_rev(self, rev):
         existing_results = self.db.get_rev_results(rev)

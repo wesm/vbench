@@ -103,6 +103,7 @@ class Benchmark(object):
 
     def plot(self, db_path, label=None, ax=None, title=True):
         import matplotlib.pyplot as plt
+        from matplotlib.dates import MonthLocator, DateFormatter
 
         results = self.get_results(db_path)
 
@@ -114,6 +115,17 @@ class Benchmark(object):
 
         ax.set_ylabel('milliseconds')
         ax.set_xlabel('Date')
+
+
+        ylo, yhi = ax.get_ylim()
+
+        if ylo < 1:
+            ax.set_ylim([0, yhi])
+
+        formatter = DateFormatter("%b %Y")
+        ax.xaxis.set_major_locator(MonthLocator())
+        ax.xaxis.set_major_formatter(formatter)
+        ax.autoscale_view(scalex=True)
 
         if title:
             ax.set_title(self.name)
