@@ -65,6 +65,8 @@ class BenchmarkRunner(object):
 
             any_succeeded = self._run_and_write_results(rev)
             if not any_succeeded:
+                self.bench_repo.hard_clean()
+
                 any_succeeded2 = self._run_and_write_results(rev)
 
                 # just guessing that this revision is broken, should stop
@@ -95,12 +97,6 @@ class BenchmarkRunner(object):
                                  timing.get('loops'),
                                  timing.get('timing'),
                                  timing.get('traceback'))
-
-        for tb in tracebacks:
-            if 'object has no attribute' in tb:
-                print 'HARD CLEANING because of %s' % tb
-                self.bench_repo.hard_clean()
-                break
 
         return any_succeeded or n_active_benchmarks == 0
 

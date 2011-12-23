@@ -10,7 +10,10 @@ benchmarks = pickle.load(open(in_path))
 
 results = {}
 for bmk in benchmarks:
-    res = bmk.run()
+    try:
+        res = bmk.run()
+    except Exception:
+        continue
     results[bmk.checksum] = res
 
 benchmarks = pickle.dump(results, open(out_path, 'w'))
