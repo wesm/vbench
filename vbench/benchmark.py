@@ -12,12 +12,13 @@ import traceback
 
 class Benchmark(object):
 
-    def __init__(self, code, setup, ncalls=None, cleanup=None,
+    def __init__(self, code, setup, ncalls=None, repeat=3, cleanup=None,
                  name=None, description=None, start_date=None):
         self.code = code
         self.setup = setup
         self.cleanup = cleanup or ''
         self.ncalls = ncalls
+        self.repeat = repeat
         self.name = name
         self.description = description
         self.start_date = start_date
@@ -55,7 +56,7 @@ class Benchmark(object):
 
         try:
             result = magic_timeit(ns, self.code, ncalls=self.ncalls,
-                                  force_ms=True)
+                                  repeat=self.repeat, force_ms=True)
             result['succeeded'] = True
             return result
         except:
@@ -143,7 +144,7 @@ class BenchmarkSuite(object):
 
 # Modified from IPython project, http://ipython.org
 
-def magic_timeit(ns, stmt, ncalls=None, force_ms=False):
+def magic_timeit(ns, stmt, ncalls=None, repeat=3, force_ms=False):
     """Time execution of a Python statement or expression
 
     Usage:\\
@@ -205,7 +206,6 @@ def magic_timeit(ns, stmt, ncalls=None, force_ms=False):
 
     timefunc = timeit.default_timer
 
-    repeat = timeit.default_repeat
     timer = timeit.Timer(timer=timefunc)
     # this code has tight coupling to the inner workings of timeit.Timer,
     # but is there a better way to achieve that the code stmt has access
