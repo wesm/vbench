@@ -63,15 +63,15 @@ class BenchmarkRunner(object):
                 print 'SKIPPING BLACKLISTED %s' % rev
                 continue
 
-            any_succeeded = self._run_and_write_results(rev)
-            if not any_succeeded:
+            any_succeeded, n_active = self._run_and_write_results(rev)
+            if not any_succeeded and n_active > 0:
                 self.bench_repo.hard_clean()
 
-                any_succeeded2 = self._run_and_write_results(rev)
+                any_succeeded2, n_active = self._run_and_write_results(rev)
 
                 # just guessing that this revision is broken, should stop
                 # wasting our time
-                if (not any_succeeded2 and len(self.benchmarks) > 2
+                if (not any_succeeded2 and n_active > 5
                     and self.use_blacklist):
                     print 'BLACKLISTING %s' % rev
                     self.db.add_rev_blacklist(rev)
@@ -98,7 +98,7 @@ class BenchmarkRunner(object):
                                  timing.get('timing'),
                                  timing.get('traceback'))
 
-        return any_succeeded or n_active_benchmarks == 0
+        return any_succeeded, n_active_benchmarks
 
     def _register_benchmarks(self):
         ex_benchmarks = self.db.get_benchmarks()

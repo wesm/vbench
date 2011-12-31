@@ -107,7 +107,6 @@ class BenchmarkDB(object):
                          timestamp=timestamp,
                          ncalls=ncalls, timing=timing,traceback=traceback)
         result = self.conn.execute(ins)
-        print result
 
     def delete_result(self, checksum, revision):
         """
