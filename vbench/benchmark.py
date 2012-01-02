@@ -13,7 +13,8 @@ import traceback
 class Benchmark(object):
 
     def __init__(self, code, setup, ncalls=None, repeat=3, cleanup=None,
-                 name=None, description=None, start_date=None):
+                 name=None, description=None, start_date=None,
+                 logy=False):
         self.code = code
         self.setup = setup
         self.cleanup = cleanup or ''
@@ -22,6 +23,7 @@ class Benchmark(object):
         self.name = name
         self.description = description
         self.start_date = start_date
+        self.logy = logy
 
     def __repr__(self):
         return "Benchmark('%s')" % self.name
@@ -112,11 +114,17 @@ class Benchmark(object):
             fig = plt.figure()
             ax = fig.add_subplot(111)
 
-        results['timing'].plot(ax=ax, label=label)
+        timing = results['timing']
+        if self.start_date is not None:
+            timing = timing.truncate(before=self.start_date)
 
-        ax.set_ylabel('milliseconds')
+        timing.plot(ax=ax, label=label, logy=self.logy)
         ax.set_xlabel('Date')
 
+        if self.logy:
+            ax.set_ylabel('milliseconds (log scale)')
+        else:
+            ax.set_ylabel('milliseconds')
 
         ylo, yhi = ax.get_ylim()
 
