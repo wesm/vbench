@@ -104,7 +104,7 @@ class Benchmark(object):
 
         return output
 
-    def plot(self, db_path, label=None, ax=None, title=True):
+    def plot(self, db_path, label='time', ax=None, title=True):
         import matplotlib.pyplot as plt
         from matplotlib.dates import MonthLocator, DateFormatter
 
@@ -118,13 +118,18 @@ class Benchmark(object):
         if self.start_date is not None:
             timing = timing.truncate(before=self.start_date)
 
-        timing.plot(ax=ax, label=label, logy=self.logy)
+        timing.plot(ax=ax, style='b-', label=label)
         ax.set_xlabel('Date')
+        ax.set_ylabel('milliseconds')
 
         if self.logy:
-            ax.set_ylabel('milliseconds (log scale)')
-        else:
-            ax.set_ylabel('milliseconds')
+            ax2 = ax.twinx()
+            timing.plot(ax=ax2, label='%s (log scale)' % label,
+                        style='r-',
+                        logy=self.logy)
+            ax2.set_ylabel('milliseconds (log scale)')
+            ax.legend(loc='best')
+            ax2.legend(loc='best')
 
         ylo, yhi = ax.get_ylim()
 
