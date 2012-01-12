@@ -9,6 +9,10 @@ import gc
 import hashlib
 import time
 import traceback
+import sys
+import inspect
+
+from pandas.util.testing import set_trace
 
 class Benchmark(object):
 
@@ -20,7 +24,15 @@ class Benchmark(object):
         self.cleanup = cleanup or ''
         self.ncalls = ncalls
         self.repeat = repeat
+
+        if name is None:
+            try:
+                name = _get_assigned_name(inspect.currentframe().f_back)
+            except:
+                pass
+
         self.name = name
+
         self.description = description
         self.start_date = start_date
         self.logy = logy
@@ -70,7 +82,7 @@ class Benchmark(object):
             buf = StringIO()
             traceback.print_exc(file=buf)
             result = {'succeeded' : False, 'traceback' : buf.getvalue()}
-        
+
         self._cleanup(ns)
         return result
 
@@ -132,12 +144,15 @@ class Benchmark(object):
 
         if self.logy:
             ax2 = ax.twinx()
-            timing.plot(ax=ax2, label='%s (log scale)' % label,
-                        style='r-',
-                        logy=self.logy)
-            ax2.set_ylabel('milliseconds (log scale)')
-            ax.legend(loc='best')
-            ax2.legend(loc='best')
+            try:
+                timing.plot(ax=ax2, label='%s (log scale)' % label,
+                            style='r-',
+                            logy=self.logy)
+                ax2.set_ylabel('milliseconds (log scale)')
+                ax.legend(loc='best')
+                ax2.legend(loc='best')
+            except ValueError:
+                pass
 
         ylo, yhi = ax.get_ylim()
 
@@ -154,6 +169,88 @@ class Benchmark(object):
 
         return ax
 
+def _get_assigned_name(frame):
+    import ast
+
+    # hackjob to retrieve assigned name for Benchmark
+    info = inspect.getframeinfo(frame)
+    line = info.code_context[0]
+    path = info.filename
+    lineno = info.lineno - 1
+
+    def _has_assignment(line):
+        try:
+            mod = ast.parse(line.strip())
+            return isinstance(mod.body[0], ast.Assign)
+        except SyntaxError:
+            return False
+
+    if not _has_assignment(line):
+        while not 'Benchmark' in line:
+            prev = open(path).readlines()[lineno]
+            line = prev + line
+            lineno -= 1
+        prev = open(path).readlines()[lineno]
+        line = prev + line
+        # if not _has_assignment(line):
+        #     return None
+    varname = line.split('=', 1)[0].strip()
+    return varname
+
+def parse_stmt(frame):
+    import ast
+    info = inspect.getframeinfo(frame)
+    call = info[-2][0]
+    mod = ast.parse(call)
+    body = mod.body[0]
+    if isinstance(body, (ast.Assign, ast.Expr)):
+        call = body.value
+    elif isinstance(body, ast.Call):
+        call = body
+    return _parse_call(call)
+
+def _parse_call(call):
+    import ast
+    func = _maybe_format_attribute(call.func)
+
+    str_args = []
+    for arg in call.args:
+        if isinstance(arg, ast.Name):
+            str_args.append(arg.id)
+        elif isinstance(arg, ast.Call):
+            formatted = _format_call(arg)
+            str_args.append(formatted)
+
+    return func, str_args, {}
+
+def _format_call(call):
+    func, args, kwds = _parse_call(call)
+    content = ''
+    if args:
+        content += ', '.join(args)
+    if kwds:
+        fmt_kwds = ['%s=%s' % item for item in kwds.iteritems()]
+        joined_kwds = ', '.join(fmt_kwds)
+        if args:
+            content = content + ', ' + joined_kwds
+        else:
+            content += joined_kwds
+    return '%s(%s)' % (func, content)
+
+def _maybe_format_attribute(name):
+    import ast
+    if isinstance(name, ast.Attribute):
+        return _format_attribute(name)
+    return name.id
+
+def _format_attribute(attr):
+    import ast
+    obj = attr.value
+    if isinstance(attr.value, ast.Attribute):
+        obj = _format_attribute(attr.value)
+    else:
+        obj = obj.id
+    return '.'.join((obj, attr.attr))
 
 def indent(string, spaces=4):
     dent = ' ' * spaces
