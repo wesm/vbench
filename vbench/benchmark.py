@@ -27,6 +27,7 @@ class Benchmark(object):
 
         if name is None:
             try:
+                set_trace()
                 name = _get_assigned_name(inspect.currentframe().f_back)
             except:
                 pass
@@ -187,13 +188,13 @@ def _get_assigned_name(frame):
 
     if not _has_assignment(line):
         while not 'Benchmark' in line:
-            prev = open(path).readlines()[lineno]
+            prev = open(path).readlines()[lineno - 1]
             line = prev + line
             lineno -= 1
-        prev = open(path).readlines()[lineno]
-        line = prev + line
-        # if not _has_assignment(line):
-        #     return None
+
+        if not _has_assignment(line):
+            prev = open(path).readlines()[lineno - 1]
+            line = prev + line
     varname = line.split('=', 1)[0].strip()
     return varname
 
