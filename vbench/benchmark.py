@@ -27,7 +27,6 @@ class Benchmark(object):
 
         if name is None:
             try:
-                set_trace()
                 name = _get_assigned_name(inspect.currentframe().f_back)
             except:
                 pass
