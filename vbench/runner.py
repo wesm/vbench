@@ -143,6 +143,7 @@ class BenchmarkRunner(object):
         if stderr:
             if ("object has no attribute" in stderr or
                 'ImportError' in stderr):
+                print stderr
                 print 'HARD CLEANING!'
                 self.bench_repo.hard_clean()
             print stderr

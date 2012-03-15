@@ -12,7 +12,7 @@ import traceback
 import sys
 import inspect
 
-from pandas.util.testing import set_trace
+# from pandas.util.testing import set_trace
 
 class Benchmark(object):
 

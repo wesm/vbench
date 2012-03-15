@@ -47,7 +47,7 @@ class GitRepo(Repo):
                 continue
             # split line into three real parts, ignoring git-graph in front
             _,sha,stamp,message = line.split('::',3)
-            
+
             # parse timestamp into datetime object
             stamp = parser.parse(stamp)
             # avoid duplicate timestamps by ignoring them
@@ -133,10 +133,15 @@ class BenchRepo(object):
                  dependencies=None):
         self.source_url = source_url
         self.target_dir = target_dir
+        self.target_dir_tmp = target_dir + '_tmp'
         self.build_cmds = build_cmds
         self.prep_cmd = prep_cmd
         self.dependencies = dependencies
+        self._clean_checkout()
         self._copy_repo()
+
+    def _clean_checkout(self):
+        self._clone(self.source_url, self.target_dir_tmp)
 
     def _copy_repo(self):
         if os.path.exists(self.target_dir):
@@ -148,11 +153,14 @@ class BenchRepo(object):
             print cmd
             os.system(cmd)
 
-        cmd = 'git clone %s %s' % (self.source_url, self.target_dir)
-        print cmd
-        os.system(cmd)
+        self._clone(self.target_dir_tmp, self.target_dir)
         self._prep()
         self._copy_benchmark_scripts_and_deps()
+
+    def _clone(self, source, target):
+        cmd = 'git clone %s %s' % (source, target)
+        print cmd
+        os.system(cmd)
 
     def _copy_benchmark_scripts_and_deps(self):
         pth, _ = os.path.split(os.path.abspath(__file__))
