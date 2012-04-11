@@ -25,7 +25,8 @@ class GitRepo(Repo):
     def __init__(self, repo_path):
         self.repo_path = repo_path
         self.git = _git_command(self.repo_path)
-        (self.shas, self.messages, self.timestamps) = self._parse_commit_log()
+        (self.shas, self.messages,
+         self.timestamps, self.authors) = self._parse_commit_log()
 
     @property
     def commit_date(self):
@@ -33,7 +34,8 @@ class GitRepo(Repo):
         return self.timestamps.map(normalize_date)
 
     def _parse_commit_log(self):
-        githist = self.git + 'log --graph --pretty=format:\"::%h::%cd::%s\" > githist.txt'
+        githist = self.git + ('log --graph --pretty=format:'
+                              '\"::%h::%cd::%s::%an\" > githist.txt')
         os.system(githist)
         githist = open('githist.txt').read()
         os.remove('githist.txt')
@@ -41,12 +43,13 @@ class GitRepo(Repo):
         shas = []
         timestamps = []
         messages = []
+        authors = []
         for line in githist.split('\n'):
             # skip commits not in mainline
             if not line[0] == '*':
                 continue
             # split line into three real parts, ignoring git-graph in front
-            _,sha,stamp,message = line.split('::',3)
+            _, sha, stamp, message, author = line.split('::', 4)
 
             # parse timestamp into datetime object
             stamp = parser.parse(stamp)
@@ -58,6 +61,7 @@ class GitRepo(Repo):
             shas.append(sha)
             timestamps.append(stamp)
             messages.append(message)
+            authors.append(author)
 
         # to UTC for now
         timestamps = _convert_timezones(timestamps)
@@ -65,7 +69,8 @@ class GitRepo(Repo):
         shas = Series(shas, timestamps)
         messages = Series(messages, shas)
         timestamps = Series(timestamps, shas)
-        return shas[::-1], messages[::-1], timestamps[::-1]
+        authors = Series(authors, shas)
+        return shas[::-1], messages[::-1], timestamps[::-1], authors[::-1]
 
     def get_churn(self, omit_shas=None, omit_paths=None):
         churn = self.get_churn_by_file()
