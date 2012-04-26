@@ -3,7 +3,13 @@
 from cStringIO import StringIO
 
 import cProfile
-import pstats
+try:
+    import pstats
+except ImportError:
+    # pstats.py was not available in python 2.6.6 distributed on Debian squeeze
+    # systems and was included only starting from 2.6.7-2.  That is why import
+    # from a local copy
+    import _pstats as pstats
 
 import gc
 import hashlib
