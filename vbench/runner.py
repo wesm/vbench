@@ -19,6 +19,7 @@ class BenchmarkRunner(object):
     run_option : {'eod', 'all', integer}
         eod: use the last revision for each calendar day
         all: benchmark every revision
+        last: only try to run the last revision
         some integer N: run each N revisions
     overwrite : boolean
     dependencies : list or None
@@ -193,6 +194,8 @@ class BenchmarkRunner(object):
             revs_to_run = grouped.apply(lambda x: x[-1]).values
         elif self.run_option == 'all':
             revs_to_run = rev_by_timestamp.values
+        elif self.run_option == 'last':
+            revs_to_run = rev_by_timestamp.values[-1]  # XXX: does this work?
         elif isinstance(self.run_option, int):
             revs_to_run = rev_by_timestamp.values[::self.run_option]
         else:
