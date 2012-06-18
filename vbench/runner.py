@@ -7,6 +7,7 @@ from vbench.db import BenchmarkDB
 
 from datetime import datetime
 
+
 class BenchmarkRunner(object):
     """
 
