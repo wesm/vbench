@@ -16,7 +16,7 @@ class BenchmarkRunner(object):
     repo_path
     build_cmd
     db_path
-    run_option : {'eod', 'all', integer}
+    run_option : {'eod', 'all', 'last', integer}, default: 'eod'
         eod: use the last revision for each calendar day
         all: benchmark every revision
         last: only try to run the last revision
@@ -29,7 +29,7 @@ class BenchmarkRunner(object):
     def __init__(self, benchmarks, repo_path, repo_url,
                  build_cmd, db_path, tmp_dir,
                  preparation_cmd,
-                 run_option='end_of_day', start_date=None, overwrite=False,
+                 run_option='eod', start_date=None, overwrite=False,
                  module_dependencies=None,
                  use_blacklist=True):
 
