@@ -132,13 +132,14 @@ class BenchRepo(object):
     Manage an isolated copy of a repository for benchmarking
     """
     def __init__(self, source_url, target_dir, build_cmds, prep_cmd,
-                 dependencies=None):
+                 dependencies=None, always_clean=False):
         self.source_url = source_url
         self.target_dir = target_dir
         self.target_dir_tmp = target_dir + '_tmp'
         self.build_cmds = build_cmds
         self.prep_cmd = prep_cmd
         self.dependencies = dependencies
+        self.always_clean = always_clean
         self._clean_checkout()
         self._copy_repo()
 
@@ -180,6 +181,8 @@ class BenchRepo(object):
         """
         rev: git SHA
         """
+        if self.always_clean:
+            self.hard_clean()
         self._checkout(rev)
         self._clean_pyc_files()
         self._build()

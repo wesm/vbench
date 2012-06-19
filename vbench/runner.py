@@ -32,6 +32,7 @@ class BenchmarkRunner(object):
                  preparation_cmd,
                  run_option='eod', start_date=None, overwrite=False,
                  module_dependencies=None,
+                 always_clean=False,
                  use_blacklist=True):
 
         self.benchmarks = benchmarks
@@ -54,6 +55,7 @@ class BenchmarkRunner(object):
         self.tmp_dir = tmp_dir
         self.bench_repo = BenchRepo(repo_url, self.tmp_dir, build_cmd,
                                     preparation_cmd,
+                                    always_clean=always_clean,
                                     dependencies=module_dependencies)
         self._register_benchmarks()
 
