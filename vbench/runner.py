@@ -198,7 +198,9 @@ class BenchmarkRunner(object):
         elif self.run_option == 'all':
             revs_to_run = rev_by_timestamp.values
         elif self.run_option == 'last':
-            revs_to_run = rev_by_timestamp.values[-1]  # XXX: does this work?
+            revs_to_run = rev_by_timestamp.values[-1:]
+            # TODO: if the very last revision fails, there should be a way
+            # to look for the second last, etc, until the last one that was run
         elif isinstance(self.run_option, int):
             revs_to_run = rev_by_timestamp.values[::self.run_option]
         else:
