@@ -265,9 +265,12 @@ def indent(string, spaces=4):
     return '\n'.join([dent + x for x in string.split('\n')])
 
 
-class BenchmarkSuite(object):
-
-    pass
+class BenchmarkSuite(list):
+    """Basically a list, but the special type is needed for discovery"""
+    @property
+    def benchmarks(self):
+        """Discard non-benchmark elements of the list"""
+        return filter(lambda elem: isinstance(elem, Benchmark), self)
 
 # Modified from IPython project, http://ipython.org
 
@@ -377,4 +380,10 @@ def magic_timeit(ns, stmt, ncalls=None, repeat=3, force_ms=False):
 
 
 def gather_benchmarks(ns):
-    return [v for v in ns.values() if isinstance(v, Benchmark)]
+    benchmarks = []
+    for v in ns.values():
+        if isinstance(v, Benchmark):
+            benchmarks.append(v)
+        elif isinstance(v, BenchmarkSuite):
+            benchmarks.extend(v.benchmarks)
+    return benchmarks
