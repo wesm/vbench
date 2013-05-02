@@ -15,10 +15,10 @@ import gc
 import hashlib
 import time
 import traceback
-import sys
 import inspect
 
 # from pandas.util.testing import set_trace
+
 
 class Benchmark(object):
 
@@ -63,6 +63,7 @@ class Benchmark(object):
         ns = self._setup()
 
         code = compile(self.code, '<f>', 'exec')
+
         def f(*args, **kw):
             for i in xrange(ncalls):
                 exec code in ns
@@ -90,9 +91,9 @@ class Benchmark(object):
         except:
             buf = StringIO()
             traceback.print_exc(file=buf)
-            result = {'succeeded' : False,
-                      'stage' : stage,
-                      'traceback' : buf.getvalue()}
+            result = {'succeeded': False,
+                      'stage': stage,
+                      'traceback': buf.getvalue()}
 
         if ns:
             self._cleanup(ns)
@@ -181,6 +182,7 @@ class Benchmark(object):
 
         return ax
 
+
 def _get_assigned_name(frame):
     import ast
 
@@ -209,6 +211,7 @@ def _get_assigned_name(frame):
     varname = line.split('=', 1)[0].strip()
     return varname
 
+
 def parse_stmt(frame):
     import ast
     info = inspect.getframeinfo(frame)
@@ -220,6 +223,7 @@ def parse_stmt(frame):
     elif isinstance(body, ast.Call):
         call = body
     return _parse_call(call)
+
 
 def _parse_call(call):
     import ast
@@ -235,6 +239,7 @@ def _parse_call(call):
 
     return func, str_args, {}
 
+
 def _format_call(call):
     func, args, kwds = _parse_call(call)
     content = ''
@@ -249,11 +254,13 @@ def _format_call(call):
             content += joined_kwds
     return '%s(%s)' % (func, content)
 
+
 def _maybe_format_attribute(name):
     import ast
     if isinstance(name, ast.Attribute):
         return _format_attribute(name)
     return name.id
+
 
 def _format_attribute(attr):
     import ast
@@ -264,15 +271,21 @@ def _format_attribute(attr):
         obj = obj.id
     return '.'.join((obj, attr.attr))
 
+
 def indent(string, spaces=4):
     dent = ' ' * spaces
     return '\n'.join([dent + x for x in string.split('\n')])
 
-class BenchmarkSuite(object):
 
-    pass
+class BenchmarkSuite(list):
+    """Basically a list, but the special type is needed for discovery"""
+    @property
+    def benchmarks(self):
+        """Discard non-benchmark elements of the list"""
+        return filter(lambda elem: isinstance(elem, Benchmark), self)
 
 # Modified from IPython project, http://ipython.org
+
 
 def magic_timeit(ns, stmt, ncalls=None, repeat=3, force_ms=False):
     """Time execution of a Python statement or expression
@@ -372,10 +385,17 @@ def magic_timeit(ns, stmt, ncalls=None, repeat=3, force_ms=False):
         else:
             order = 3
 
-    return {'loops' : number,
-            'repeat' : repeat,
-            'timing' : best * scaling[order],
-            'units' : units[order]}
+    return {'loops': number,
+            'repeat': repeat,
+            'timing': best * scaling[order],
+            'units': units[order]}
+
 
 def gather_benchmarks(ns):
-    return [v for v in ns.values() if isinstance(v, Benchmark)]
+    benchmarks = []
+    for v in ns.values():
+        if isinstance(v, Benchmark):
+            benchmarks.append(v)
+        elif isinstance(v, BenchmarkSuite):
+            benchmarks.extend(v.benchmarks)
+    return benchmarks
