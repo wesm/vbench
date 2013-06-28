@@ -102,11 +102,11 @@ def run_cmd(cmd, stderr_levels=('warn', 'error'), **kwargs):
             stderr=subprocess.PIPE,
             **kwargs)
     stdout, stderr = proc.communicate()
-    if stdout: log.debug(stdout)
+    if stdout: log.debug("stdout: " + stdout)
     if stderr:
         stderr_level = stderr_levels[int(proc.returncode>0)]
         if stderr_level:
-            getattr(log, stderr_level)(stderr)
+            getattr(log, stderr_level)("stderr: " + stderr)
     return proc
 
 # TODO: join two together
