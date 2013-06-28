@@ -29,7 +29,7 @@ def generate_rst_files(benchmarks, dbpath, outpath, description=""):
     log.info("Generating rst files for %d benchmarks" % (len(benchmarks)))
     for bmk in benchmarks:
         log.debug('Generating rst file for %s' % bmk.name)
-        rst_path = os.path.join(outpath, 'vbench/%s.txt' % bmk.name)
+        rst_path = os.path.join(outpath, 'vbench/%s.rst' % bmk.name)
 
         fig_full_path = os.path.join(fig_base_path, '%s.png' % bmk.name)
 
@@ -81,5 +81,5 @@ These historical benchmark graphs were produced with `vbench
                 for bmk in mod_bmks:
                     print >> mh, bmk.name
                     print >> mh, '-' * len(bmk.name)
-                    print >> mh, '.. include:: vbench/%s.txt\n' % bmk.name
+                    print >> mh, '.. include:: vbench/%s.rst\n' % bmk.name
 

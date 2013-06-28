@@ -81,8 +81,8 @@ def test_benchmarkrunner():
     target_image_files = [b.name + '.png' for b in runner.benchmarks]
     eq_(set(image_files), set(target_image_files))
 
-    rst_files = [basename(x) for x in glob(pjoin(rstdir, 'vbench/*.txt'))]
-    target_rst_files = [b.name + '.txt' for b in runner.benchmarks]
+    rst_files = [basename(x) for x in glob(pjoin(rstdir, 'vbench/*.rst'))]
+    target_rst_files = [b.name + '.rst' for b in runner.benchmarks]
     eq_(set(rst_files), set(target_rst_files))
 
     module_files = [basename(x) for x in glob(pjoin(rstdir, '*.rst'))]
