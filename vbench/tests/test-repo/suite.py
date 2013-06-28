@@ -1,4 +1,4 @@
-import os, sys
+import os
 from datetime import datetime
 
 from vbench.api import collect_benchmarks
@@ -26,6 +26,6 @@ BUILD = """
 python setup.py build_ext --inplace
 """
 
-DEPENDENCIES = ['vb_common.py']
+DEPENDENCIES = [os.path.join(cur_dir, 'vb_common.py')]
 
 START_DATE = datetime(2011, 01, 01)

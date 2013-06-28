@@ -6,10 +6,14 @@ setup = """\
 from vb_common import *
 """
 
+# We do not care about precision, so ncalls is set low
+
 # Separate benchmark
-vb1000 = Benchmark("manysins(1000)", setup=setup+"from vbenchtest.m1 import manysins")
+vb1000 = Benchmark("manysins(1000)", setup=setup+"from vbenchtest.m1 import manysins",
+                   ncalls=2)
 
 # List of the benchmarks
 vb_collection = [Benchmark("manysins(%d)" % n ,
-                           setup=setup+"from vbenchtest.m1 import manysins")
+                           setup=setup+"from vbenchtest.m1 import manysins",
+                           ncalls=2)
                  for n in [100, 2000]]
