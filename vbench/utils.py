@@ -122,18 +122,17 @@ def collect_benchmarks_from_object(obj):
 
 def collect_benchmarks(modules):
     log.info("Collecting benchmarks from modules %s" % " ".join(modules))
-    by_module = {}
     benchmarks = []
 
-    for modname in modules:
-        log.debug(" Loading %s" % modname)
-        ref = importlib.import_module(modname)
-        by_module[modname] = list(chain(
+    for module_name in modules:
+        log.debug(" Loading %s" % module_name)
+        ref = importlib.import_module(module_name)
+        new_benchmarks = list(chain(
             *[collect_benchmarks_from_object(x) for x in ref.__dict__.values()]))
-        benchmarks.extend(by_module[modname])
-
-    for bm in benchmarks:
-        assert(bm.name is not None)
+        for bm in new_benchmarks:
+            assert(bm.name is not None)
+            bm.module_name = module_name
+        benchmarks.extend(new_benchmarks)
 
     # Verify that they are all unique according to their checksums
     checksums = [b.checksum for b in benchmarks]
@@ -147,4 +146,4 @@ def collect_benchmarks(modules):
                 checksums_.add(b.checksum)
 
         raise ValueError("There were duplicate benchmarks -- check if you didn't leak variables")
-    return benchmarks, by_module
+    return benchmarks

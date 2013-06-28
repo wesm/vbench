@@ -3,7 +3,7 @@ from datetime import datetime
 
 from vbench.api import collect_benchmarks
 
-benchmarks, benchmarks_by_module = collect_benchmarks(
+benchmarks = collect_benchmarks(
     ['vb_sins'])
 
 cur_dir = os.path.dirname(__file__)

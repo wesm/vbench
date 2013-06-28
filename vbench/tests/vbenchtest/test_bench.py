@@ -6,8 +6,10 @@ __copyright__ = 'Copyright (c) 2013 Yaroslav Halchenko'
 __license__ = 'MIT'
 
 import os
-from os.path import exists, join as pjoin, dirname
 import shutil
+
+from glob import glob
+from os.path import exists, join as pjoin, dirname, basename
 
 from nose.tools import ok_, eq_
 from numpy.testing import assert_array_equal
@@ -56,7 +58,7 @@ def test_benchmarkrunner():
         eq_(v, (False, 0))
 
     # What if we expand list of benchmarks and run 3rd time
-    runner.benchmarks = collect_benchmarks(['vb_sins', 'vb_sins2'])[0]
+    runner.benchmarks = collect_benchmarks(['vb_sins', 'vb_sins2'])
     revisions_ran = runner.run()
     # for that single added benchmark there still were no function
     eq_(revisions_ran[0][1], (False, 1))
@@ -69,5 +71,24 @@ def test_benchmarkrunner():
     for rev, v in revisions_ran:
         eq_(v, (False, 0))
 
-    shutil.rmtree(TMP_DIR)
-    shutil.rmtree(dirname(DB_PATH))
+    # Now let's smoke test generation of the .rst files
+    from vbench.reports import generate_rst_files
+    rstdir = pjoin(TMP_DIR, 'sources')
+    generate_rst_files(runner.benchmarks, DB_PATH, rstdir, """VERY LONG DESCRIPTION""")
+
+    # Verify that it all looks close to the desired
+    image_files = [basename(x) for x in glob(pjoin(rstdir, 'vbench/figures/*.png'))]
+    target_image_files = [b.name + '.png' for b in runner.benchmarks]
+    eq_(set(image_files), set(target_image_files))
+
+    rst_files = [basename(x) for x in glob(pjoin(rstdir, 'vbench/*.txt'))]
+    target_rst_files = [b.name + '.txt' for b in runner.benchmarks]
+    eq_(set(rst_files), set(target_rst_files))
+
+    module_files = [basename(x) for x in glob(pjoin(rstdir, '*.rst'))]
+    target_module_files = list(set(['vb_' + b.module_name + '.rst' for b in runner.benchmarks]))
+    eq_(set(module_files), set(target_module_files + ['index.rst']))
+
+    print TMP_DIR
+    #shutil.rmtree(TMP_DIR)
+    #shutil.rmtree(dirname(DB_PATH))
