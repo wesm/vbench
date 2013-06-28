@@ -29,11 +29,12 @@ __author__ = 'Yaroslav Halchenko'
 __copyright__ = 'Copyright (c) 2013 Yaroslav Halchenko'
 __license__ = 'MIT'
 
+from itertools import chain
 from math import ceil
 
 import sys, subprocess
 
-from vbench.api import Benchmark
+from vbench.benchmark import Benchmark
 
 import logging
 log = logging.getLogger('vb')
@@ -108,17 +109,14 @@ def run_cmd(cmd, stderr_levels=('warn', 'error'), **kwargs):
             getattr(log, stderr_level)(stderr)
     return proc
 
-def is_interactive():
-    """Return True if all in/outs are tty"""
-    return sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty()
-
+# TODO: join two together
 def collect_benchmarks_from_object(obj):
     if isinstance(obj, Benchmark):
         return [obj]
     elif isinstance(obj, list) or isinstance(obj, tuple):
         return [x for x in obj if isinstance(x, Benchmark)]
         ## no recursion for now
-        #list(chain(*[extract_benchmarks(x) for x in obj]))
+        #list(chain(*[collect_benchmarks(x) for x in obj]))
     else:
         return []
 
@@ -131,7 +129,7 @@ def collect_benchmarks(modules):
         log.debug(" Loading %s" % modname)
         ref = __import__(modname)
         by_module[modname] = list(chain(
-            *[extract_benchmarks(x) for x in ref.__dict__.values()]))
+            *[collect_benchmarks_from_object(x) for x in ref.__dict__.values()]))
         benchmarks.extend(by_module[modname])
 
     for bm in benchmarks:

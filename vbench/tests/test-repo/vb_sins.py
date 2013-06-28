@@ -12,4 +12,4 @@ vb1000 = Benchmark("manysins(1000)", setup=setup+"from vbenchtest.m1 import many
 # List of the benchmarks
 vb_collection = [Benchmark("manysins(%d)" % n ,
                            setup=setup+"from vbenchtest.m1 import manysins")
-                 for n in [100, 1000]]
+                 for n in [100, 2000]]
