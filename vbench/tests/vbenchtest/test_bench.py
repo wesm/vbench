@@ -89,6 +89,6 @@ def test_benchmarkrunner():
     target_module_files = list(set(['vb_' + b.module_name + '.rst' for b in runner.benchmarks]))
     eq_(set(module_files), set(target_module_files + ['index.rst']))
 
-    print TMP_DIR
-    #shutil.rmtree(TMP_DIR)
-    #shutil.rmtree(dirname(DB_PATH))
+    #print TMP_DIR
+    shutil.rmtree(TMP_DIR)
+    shutil.rmtree(dirname(DB_PATH))
