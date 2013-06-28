@@ -32,7 +32,7 @@ __license__ = 'MIT'
 from itertools import chain
 from math import ceil
 
-import sys, subprocess
+import importlib, sys, subprocess
 
 from vbench.benchmark import Benchmark
 
@@ -127,7 +127,7 @@ def collect_benchmarks(modules):
 
     for modname in modules:
         log.debug(" Loading %s" % modname)
-        ref = __import__(modname)
+        ref = importlib.import_module(modname)
         by_module[modname] = list(chain(
             *[collect_benchmarks_from_object(x) for x in ref.__dict__.values()]))
         benchmarks.extend(by_module[modname])
