@@ -33,6 +33,8 @@ from math import ceil
 
 import sys, subprocess
 
+from vbench.api import Benchmark
+
 import logging
 log = logging.getLogger('vb')
 
@@ -109,3 +111,42 @@ def run_cmd(cmd, stderr_levels=('warn', 'error'), **kwargs):
 def is_interactive():
     """Return True if all in/outs are tty"""
     return sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty()
+
+def collect_benchmarks_from_object(obj):
+    if isinstance(obj, Benchmark):
+        return [obj]
+    elif isinstance(obj, list) or isinstance(obj, tuple):
+        return [x for x in obj if isinstance(x, Benchmark)]
+        ## no recursion for now
+        #list(chain(*[extract_benchmarks(x) for x in obj]))
+    else:
+        return []
+
+def collect_benchmarks(modules):
+    log.info("Collecting benchmarks from modules %s" % " ".join(modules))
+    by_module = {}
+    benchmarks = []
+
+    for modname in modules:
+        log.debug(" Loading %s" % modname)
+        ref = __import__(modname)
+        by_module[modname] = list(chain(
+            *[extract_benchmarks(x) for x in ref.__dict__.values()]))
+        benchmarks.extend(by_module[modname])
+
+    for bm in benchmarks:
+        assert(bm.name is not None)
+
+    # Verify that they are all unique according to their checksums
+    checksums = [b.checksum for b in benchmarks]
+    if not (len(checksums) == len(set(checksums))):
+        # Houston we have a problem
+        checksums_ = set()
+        for b in benchmarks:
+            if b.checksum in checksums_:
+                log.error(" Benchmark %s already known" % b)
+            else:
+                checksums_.add(b.checksum)
+
+        raise ValueError("There were duplicate benchmarks -- check if you didn't leak variables")
+    return benchmarks, by_module
