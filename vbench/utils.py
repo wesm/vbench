@@ -31,6 +31,11 @@ __license__ = 'MIT'
 
 from math import ceil
 
+import sys, subprocess
+
+import logging
+log = logging.getLogger('vb')
+
 def multires_order(n):
     """Provide order of indexes slowly detailing into the history
 
@@ -80,3 +85,27 @@ def multires_order(n):
         out.extend([i for i in range(n) if not seen[i]])
     assert(set(out) == set(range(n)))
     return out
+
+def run_cmd(cmd, stderr_levels=('warn', 'error'), **kwargs):
+    """Helper function to unify invocation and logging of external commands
+
+    stderr_levels : (success, failure)
+      Levels of output dependent on success or failure of the command
+    """
+
+    log.debug(cmd if isinstance(cmd, basestring) else ' '.join(cmd))
+    proc = subprocess.Popen(cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            **kwargs)
+    stdout, stderr = proc.communicate()
+    if stdout: log.debug(stdout)
+    if stderr:
+        stderr_level = stderr_levels[int(proc.returncode>0)]
+        if stderr_level:
+            getattr(log, stderr_level)(stderr)
+    return proc
+
+def is_interactive():
+    """Return True if all in/outs are tty"""
+    return sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty()
