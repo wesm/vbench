@@ -44,7 +44,7 @@ class BenchmarkRunner(object):
     def __init__(self, benchmarks, repo_path, repo_url,
                  build_cmd, db_path, tmp_dir,
                  prep_cmd,
-                 clean_cmd,
+                 clean_cmd=None,
                  run_option='eod', run_order='normal',
                  start_date=None, overwrite=False,
                  module_dependencies=None,
